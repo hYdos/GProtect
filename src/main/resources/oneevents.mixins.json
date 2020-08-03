@@ -1,0 +1,21 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "io.github.half.oneevents",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "EntityDeathEvent",
+    "EntityLand",
+    "ModifySpawnEquipment",
+    "PlayerBreakBlock",
+    "PlayerLeave",
+    "PlayerLogin",
+    "PlayerPlaceBlock",
+    "SignChange",
+    "WorldClose",
+    "XpGainEvent"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
