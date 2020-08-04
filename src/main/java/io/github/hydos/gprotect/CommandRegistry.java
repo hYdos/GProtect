@@ -1,9 +1,7 @@
 package io.github.hydos.gprotect;
 
 import com.mojang.brigadier.CommandDispatcher;
-import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback;
 import net.minecraft.command.arguments.EntityArgumentType;
-import net.minecraft.command.arguments.MessageArgumentType;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -24,7 +22,17 @@ public class CommandRegistry {
                 entity.sendMessage(new LiteralText(AQUA + "Version " + GProtect.VERSION), true);
             }
             return 1;
-        }).then(CommandManager.argument("subcommand", MessageArgumentType.message())));
+        }));
+
+        dispatcher.register(CommandManager.literal("history").requires((serverCommandSource) -> serverCommandSource.hasPermissionLevel(2)).then(CommandManager.argument("player", EntityArgumentType.player()).executes((commandContext) -> {
+            PlayerEntity sender = (PlayerEntity) commandContext.getSource().getEntity();
+            PlayerEntity specifiedPlayer = commandContext.getArgument("player", PlayerEntity.class);
+            if (specifiedPlayer != null) {
+            }else{
+                sender.sendMessage(new LiteralText(RED + "Please specify a valid player."), false);
+            }
+            return 1;
+        })));
     }
 
 }
