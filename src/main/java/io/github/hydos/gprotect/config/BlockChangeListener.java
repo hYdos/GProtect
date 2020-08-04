@@ -1,10 +1,11 @@
 package io.github.hydos.gprotect.config;
 
-import net.minecraft.block.Block;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.BlockPos;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 import java.util.Properties;
 
 /*
@@ -19,14 +20,23 @@ import java.util.Properties;
 );
 
 INSERT INTO cats ( name, owner, birth) VALUES
+  ( 'Sandy', 'Lennon', '2015-01-03' ),
+  ( 'Cookie', 'Casey', '2013-11-13' ),
+  ( 'Charlie', 'River', '2016-05-21' );
+
 SELECT * FROM cats;
 SELECT name FROM cats WHERE owner = 'Casey';
 DELETE FROM cats WHERE name='Cookie';
+
+https://www.tutorialspoint.com/jdbc/jdbc-sample-code.htm
+https://dev.mysql.com/doc/mysql-getting-started/en/
  */
 
 public interface BlockChangeListener {
 
-    void playerBlockChange(Block oldBlock, Block newBlock, BlockPos position, PlayerEntity playerEntity);
+    void playerBlockChange(BlockHistory history);
+
+    List<BlockHistory> getBlockHistory(BlockPos pos);
 
     class MySQLWriter implements BlockChangeListener {
         static final String DB_URL = "jdbc:mysql://localhost:3306";
@@ -61,11 +71,11 @@ public interface BlockChangeListener {
             return stmt.executeQuery(sql);
         }
 
-        public boolean sendUpdate(String statement) throws SQLException {
+        public void sendUpdate(String statement) throws SQLException {
             stmt = conn.createStatement();
             String sql;
             sql = statement;
-            return stmt.execute(sql);
+            stmt.execute(sql);
         }
 
         public void closeConnection() {
@@ -82,7 +92,7 @@ public interface BlockChangeListener {
         public void postConnect() {
             try {
                 sendQuery("USE gprotect");
-                sendQuery("SELECT id, oldblock, newblock, pos, time, player FROM playerModify");
+                ResultSet blessedCurrentTable = sendQuery("SELECT id, oldblock, newblock, pos, time, player FROM playerModify");
             } catch (SQLException e) {
                 System.out.println("Database tables dont exist! creating...");
                 try {
@@ -100,27 +110,41 @@ public interface BlockChangeListener {
                 } catch (SQLException sqlE) {
                     System.out.println("Tables could not be created! exiting...");
                     sqlE.printStackTrace();
-                    System.exit(69);
+                    closeConnection();
+                    System.exit(-1);
                 }
                 postConnect();
             }
         }
 
         @Override
-        public void playerBlockChange(Block oldBlock, Block newBlock, BlockPos position, PlayerEntity playerEntity) {
-
-        }
-    }
-
-    class SQLiteWriter implements BlockChangeListener {
-        public SQLiteWriter() {
-
+        public void playerBlockChange(BlockHistory history) {
+            try {
+                sendUpdate("INSERT INTO playerModify (id, oldblock, newblock, pos, time, player) VALUES" +
+                        "(" + history.oldBlock + "," + history.newBlock + "," + history.position + "," + history.time + "," + history.playerUuid + ");");
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
         }
 
         @Override
-        public void playerBlockChange(Block oldBlock, Block newBlock, BlockPos position, PlayerEntity playerEntity) {
-
+        public List<BlockHistory> getBlockHistory(BlockPos pos) {
+            List<BlockHistory> history = new ArrayList<>();
+            try {
+                ResultSet result = sendQuery("SELECT id, oldblock, newblock, pos, time, player FROM playerModify");
+                while (result.next()) {
+                    int id = result.getInt("id");
+                    String oldBlock = result.getString("oldblock");
+                    String newBlock = result.getString("newblock");
+                    long position = result.getLong("pos");
+                    Date time = result.getTime("time");
+                    String playerUuid = result.getString("player");
+                    history.add(new BlockHistory(id, oldBlock, newBlock, position, time, playerUuid));
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            return history;
         }
     }
-
 }
